@@ -1,5 +1,7 @@
 import * as THREE from 'three'
 import * as dat from 'lil-gui'
+import gsap from 'gsap'
+
 
 /**
  * Debug
@@ -77,6 +79,34 @@ const sectionMeshes = [mesh1, mesh2, mesh3]
 
 
 /**
+ * Particles
+ */
+const particlesCount = 200
+const positions = new Float32Array(particlesCount * 3)
+
+for(let i = 0; i < particlesCount; i++) {
+    positions[i * 3 + 0] = (Math.random() - 0.5) * 10
+    positions[i * 3 + 1] = objectDistance * 0.5 - Math.random() * objectDistance * sectionMeshes.length
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 10
+}
+
+const particlesGeometry = new THREE.BufferGeometry()
+particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+
+//Particles Material
+const particlesMaterial = new THREE.PointsMaterial({
+    color: parameters.materialColor,
+    sizeAttenuation: true,
+    size: 0.02
+})
+
+//Points
+const particles = new THREE.Points(particlesGeometry, particlesMaterial)
+scene.add(particles)
+
+
+
+/**
  * Lights
  */
 const directionalLight = new THREE.DirectionalLight('#fff',0.85)
@@ -141,9 +171,25 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
  * Scroll
  */
 let scrollValue = window.scrollY
+let currentSection = 0
 
 window.addEventListener('scroll', () => {
     scrollValue = window.scrollY
+
+    const newSection = Math.round(scrollY / sizes.height)  
+
+    if(newSection != currentSection) {
+        currentSection = newSection
+    }
+
+    gsap.to(
+        sectionMeshes[currentSection].rotation, {
+            duration: 1.5,
+            ease: 'power2.inOut',
+            x: '+=6',
+            y: '+=3'
+        }
+    )
 })
 
 /**
@@ -163,12 +209,13 @@ window.addEventListener('mousemove', (event) => {
  * Animate
  */
 const clock = new THREE.Clock()
-let prevoiusTime = 0
+let previousTime = 0
 
 const tick = () =>
 {
     const elapsedTime = clock.getElapsedTime()
-    const deltaTime = elapsedTime - prevoiusTime
+    const deltaTime = elapsedTime - previousTime
+    previousTime = elapsedTime
 
     //Animate Camera
     camera.position.y = - scrollValue / sizes.height * objectDistance
@@ -176,13 +223,13 @@ const tick = () =>
     const parallaxX = cursor.x
     const parallaxY = - cursor.y
 
-    cameraGroup.position.x += (parallaxX - cameraGroup.position.x) * 0.1 * deltaTime
-    cameraGroup.position.y += (parallaxY - cameraGroup.position.y) * 0.1 * deltaTime
+    cameraGroup.position.x += (parallaxX - cameraGroup.position.x) * 5 * 0.1
+    cameraGroup.position.y += (parallaxY - cameraGroup.position.y) * 5 * 0.1
 
     //Animate meshes
     for(const mesh of sectionMeshes) {
-        mesh.rotation.x = elapsedTime * 0.1
-        mesh.rotation.y = elapsedTime * 0.15
+        mesh.rotation.x += deltaTime * 0.1
+        mesh.rotation.y += deltaTime * 0.15
     }
 
 
